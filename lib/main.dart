@@ -6,53 +6,68 @@ class ByteBankApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        home: Scaffold(
-      body: TransferForm(),
-    ));
+      theme: ThemeData(
+        primaryColor: Colors.green[900],
+        accentColor: Colors.blueAccent[700],
+        buttonTheme: ButtonThemeData(
+          buttonColor: Colors.blueAccent[700],
+          textTheme: ButtonTextTheme.primary
+        )
+      ),
+      home: TransferList(),
+    );
   }
 }
 
-class TransferForm extends StatelessWidget {
+class TransferForm extends StatefulWidget {
+  @override
+  State<StatefulWidget> createState() {
+    return TransferFormState();
+  }
+}
+
+class TransferFormState extends State<TransferForm> {
   final TextEditingController _accountNumberFieldController =
-      TextEditingController();
+  TextEditingController();
   final TextEditingController _valueFieldController = TextEditingController();
+
+  void createTransfer(BuildContext context) {
+    debugPrint('clicou confirmar');
+    final double value = double.tryParse(_valueFieldController.text);
+    final int accountNumber = int.tryParse(_accountNumberFieldController.text);
+
+    if (accountNumber != null && value != null) {
+      final createdTransfer = Transfer(value, accountNumber);
+      debugPrint('$createdTransfer');
+      Navigator.pop(context, createdTransfer);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Criando Transferência')),
-      body: Column(
-        children: [
-          Editor(
-              controller: _accountNumberFieldController,
-              tip: '0000',
-              label: 'Número da conta'),
-          Editor(
-              controller: _valueFieldController,
-              tip: 'Valor',
-              label: '0.00',
-              icon: Icons.monetization_on),
-          ElevatedButton(
-            onPressed: () {
-              createTransfer();
-            },
-            child: Text('CONFIRMAR'),
-          ),
-        ],
-      ),
+      body: SingleChildScrollView(
+          child: Column(
+            children: [
+              Editor(
+                  controller: _accountNumberFieldController,
+                  tip: '0000',
+                  label: 'Número da conta'),
+              Editor(
+                  controller: _valueFieldController,
+                  tip: 'Valor',
+                  label: '0.00',
+                  icon: Icons.monetization_on),
+              ElevatedButton(
+                onPressed: () {
+                  createTransfer(context);
+                },
+                child: Text('CONFIRMAR'),
+              ),
+            ],
+          )),
     );
-  }
-
-  void createTransfer() {
-    debugPrint('clicou confirmar');
-    final double value = double.tryParse(_valueFieldController.text);
-    final int accountNumber =
-        int.tryParse(_accountNumberFieldController.text);
-
-    if (accountNumber != null && value != null) {
-      final createdTransfer = Transfer(value, accountNumber);
-      debugPrint('$createdTransfer');
-    }
   }
 }
 
@@ -83,21 +98,46 @@ class Editor extends StatelessWidget {
   }
 }
 
-class TransferList extends StatelessWidget {
+class TransferList extends StatefulWidget {
+  final List<Transfer> _transfers = [];
+
+  @override
+  State<StatefulWidget> createState() {
+    return TransferListState();
+  }
+}
+
+class TransferListState extends State<TransferList> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Transferências'),
       ),
-      body: Column(
-        children: [
-          TransferItem(Transfer(100.0, 100000)),
-          TransferItem(Transfer(200.0, 200000)),
-        ],
+      body: ListView.builder(
+        itemCount: widget._transfers.length,
+        itemBuilder: (context, index) {
+          final transfer = widget._transfers[index];
+          return TransferItem(transfer);
+        },
       ),
       floatingActionButton: FloatingActionButton(
         child: Icon(Icons.add),
+        onPressed: () {
+          final Future<Transfer> future =
+              Navigator.push(context, MaterialPageRoute(builder: (context) {
+            return TransferForm();
+          }));
+          future.then((transferReceived) {
+            debugPrint('Chegou no debug print');
+            debugPrint('$transferReceived');
+            if (transferReceived != null) {
+              setState(() {
+                widget._transfers.add(transferReceived);
+              });
+            }
+          });
+        },
       ),
     );
   }
